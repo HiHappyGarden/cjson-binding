@@ -1,0 +1,192 @@
+# cjson-rs
+
+Safe Rust bindings for the [cJSON](https://github.com/DaveGamble/cJSON) library - a lightweight JSON parser in C.
+
+## Overview
+
+`cjson-rs` provides idiomatic, safe Rust wrappers around the cJSON C library, offering:
+
+- **Safe API**: Memory-safe wrappers with automatic resource management (RAII)
+- **Type-safe operations**: Strong typing with `Result` types for error handling
+- **JSON Pointer support (RFC6901)**: Navigate JSON documents using JSON Pointer syntax
+- **JSON Patch support (RFC6902)**: Generate and apply JSON patches
+- **JSON Merge Patch support (RFC7386)**: Generate and apply merge patches
+- **no_std compatible**: Suitable for embedded systems
+
+## Features
+
+### Core JSON Operations
+
+- Parse and print JSON with automatic memory management
+- Create and manipulate JSON objects, arrays, strings, numbers, booleans, and null values
+- Type checking and value retrieval with compile-time safety
+- Deep cloning and comparison
+
+### Advanced Features
+
+- **JSON Pointer (RFC6901)**: Navigate JSON structures using paths like `/foo/bar/0`
+- **JSON Patch (RFC6902)**: Generate and apply patch operations (add, remove, replace, move, copy, test)
+- **JSON Merge Patch (RFC7386)**: Simpler patch format for common use cases
+- Sorting object keys alphabetically
+
+## Usage
+
+### Basic Example
+
+```rust
+use cjson_rs::{CJson, CJsonResult};
+
+fn main() -> CJsonResult<()> {
+    // Parse JSON
+    let json = CJson::parse(r#"{"name": "John", "age": 30}"#)?;
+    
+    // Access values
+    let name = json.get_object_item("name")?;
+    println!("Name: {}", name.get_string_value()?);
+    
+    // Create new JSON
+    let mut obj = CJson::create_object()?;
+    obj.add_string_to_object("city", "New York")?;
+    obj.add_number_to_object("population", 8_000_000.0)?;
+    
+    // Print JSON
+    println!("{}", obj.print()?);
+    
+    Ok(())
+}
+```
+
+### JSON Pointer Example
+
+```rust
+use cjson_rs::{CJson, JsonPointer};
+
+let json = CJson::parse(r#"{
+    "users": [
+        {"name": "Alice", "age": 25},
+        {"name": "Bob", "age": 30}
+    ]
+}"#)?;
+
+// Navigate using JSON Pointer
+let bob = JsonPointer::get(&json, "/users/1/name")?;
+println!("User: {}", bob.get_string_value()?); // "Bob"
+```
+
+### JSON Patch Example
+
+```rust
+use cjson_rs::{CJson, JsonPatch};
+
+let mut original = CJson::parse(r#"{"name": "John", "age": 30}"#)?;
+let patches = CJson::parse(r#"[
+    {"op": "replace", "path": "/age", "value": 31},
+    {"op": "add", "path": "/city", "value": "NYC"}
+]"#)?;
+
+// Apply patches
+JsonPatch::apply(&mut original, &patches)?;
+println!("{}", original.print()?);
+// Output: {"name":"John","age":31,"city":"NYC"}
+```
+
+### JSON Merge Patch Example
+
+```rust
+use cjson_rs::{CJson, JsonMergePatch};
+
+let mut target = CJson::parse(r#"{"name": "John", "age": 30}"#)?;
+let patch = CJson::parse(r#"{"age": 31, "city": "NYC"}"#)?;
+
+// Apply merge patch
+let result = JsonMergePatch::apply(&mut target, &patch)?;
+println!("{}", result.print()?);
+```
+
+## API Types
+
+### Main Types
+
+- **`CJson`**: Owned JSON value with automatic memory management
+- **`CJsonRef`**: Borrowed reference to a JSON value (non-owning)
+- **`CJsonResult<T>`**: Result type for operations that can fail
+- **`CJsonError`**: Error enumeration for all possible errors
+
+### Utility Types
+
+- **`JsonPointer`**: JSON Pointer (RFC6901) operations
+- **`JsonPatch`**: JSON Patch (RFC6902) operations
+- **`JsonMergePatch`**: JSON Merge Patch (RFC7386) operations
+- **`JsonUtils`**: Additional utilities (e.g., sorting)
+
+## Error Handling
+
+All operations that can fail return `CJsonResult<T>`, which is a type alias for `Result<T, CJsonError>`:
+
+```rust
+pub enum CJsonError {
+    ParseError,
+    NullPointer,
+    InvalidUtf8,
+    NotFound,
+    TypeError,
+    AllocationError,
+    InvalidOperation,
+}
+```
+
+## Memory Safety
+
+`cjson-rs` ensures memory safety through:
+
+- **RAII**: `CJson` automatically frees memory when dropped
+- **No manual memory management**: All allocations/deallocations are handled automatically
+- **Reference types**: `CJsonRef` provides safe borrowing without ownership transfer
+- **Clear ownership**: `into_raw()` for explicit ownership transfer when needed
+
+## Dependencies
+
+This crate links against the [cJSON](https://github.com/DaveGamble/cJSON) C library. You need to have cJSON installed or provide it as part of your build process.
+
+## License
+
+This Rust wrapper is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+The underlying [cJSON library](https://github.com/DaveGamble/cJSON) is licensed under the MIT License.
+
+### cJSON License
+
+```
+Copyright (c) 2009-2017 Dave Gamble and cJSON contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+See [LICENSE](LICENSE) for the full GPL-3.0 license text and [cJSON's license](https://github.com/DaveGamble/cJSON/blob/master/LICENSE) for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## References
+
+- [cJSON Library](https://github.com/DaveGamble/cJSON)
+- [RFC 6901 - JSON Pointer](https://tools.ietf.org/html/rfc6901)
+- [RFC 6902 - JSON Patch](https://tools.ietf.org/html/rfc6902)
+- [RFC 7386 - JSON Merge Patch](https://tools.ietf.org/html/rfc7386)
