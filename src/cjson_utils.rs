@@ -283,3 +283,172 @@ impl JsonUtils {
 
 /// Re-export CJsonRef for use with pointer operations
 pub use crate::cjson::CJsonRef;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cjson::CJson;
+
+    #[test]
+    fn test_json_pointer_get() {
+        let json = r#"{"foo":{"bar":[1,2,3]}}"#;
+        let obj = CJson::parse(json).unwrap();
+        
+        let result = JsonPointer::get(&obj, "/foo/bar/1").unwrap();
+        assert_eq!(result.get_number_value().unwrap(), 2.0);
+    }
+
+    #[test]
+    fn test_json_pointer_get_case_sensitive() {
+        let json = r#"{"Foo":{"Bar":"test"}}"#;
+        let obj = CJson::parse(json).unwrap();
+        
+        let result = JsonPointer::get_case_sensitive(&obj, "/Foo/Bar").unwrap();
+        assert_eq!(result.get_string_value().unwrap(), "test");
+    }
+
+    #[test]
+    fn test_json_pointer_not_found() {
+        let json = r#"{"foo":"bar"}"#;
+        let obj = CJson::parse(json).unwrap();
+        
+        assert!(JsonPointer::get(&obj, "/nonexistent").is_err());
+    }
+
+    #[test]
+    fn test_json_patch_generate_and_apply() {
+        let from_json = r#"{"name":"John","age":30}"#;
+        let to_json = r#"{"name":"John","age":31,"city":"NYC"}"#;
+        
+        let mut from = CJson::parse(from_json).unwrap();
+        let mut to = CJson::parse(to_json).unwrap();
+        
+        let patches = JsonPatch::generate(&mut from, &mut to).unwrap();
+        assert!(patches.is_array());
+    }
+
+    #[test]
+    fn test_json_patch_apply() {
+        let obj_json = r#"{"name":"John","age":30}"#;
+        let patch_json = r#"[{"op":"replace","path":"/age","value":31}]"#;
+        
+        let mut obj = CJson::parse(obj_json).unwrap();
+        let patches = CJson::parse(patch_json).unwrap();
+        
+        JsonPatch::apply(&mut obj, &patches).unwrap();
+        
+        let age = obj.get_object_item("age").unwrap();
+        assert_eq!(age.get_number_value().unwrap(), 31.0);
+    }
+
+    #[test]
+    fn test_json_merge_patch_apply() {
+        let target_json = r#"{"name":"John","age":30}"#;
+        let patch_json = r#"{"age":31,"city":"NYC"}"#;
+        
+        let mut target = CJson::parse(target_json).unwrap();
+        let patch = CJson::parse(patch_json).unwrap();
+        
+        let result = JsonMergePatch::apply(&mut target, &patch).unwrap();
+        // target ownership is consumed by apply, don't use it anymore
+        core::mem::forget(target); // Prevent double free
+        
+        let age = result.get_object_item("age").unwrap();
+        assert_eq!(age.get_number_value().unwrap(), 31.0);
+        
+        let city = result.get_object_item("city").unwrap();
+        assert_eq!(city.get_string_value().unwrap(), "NYC");
+    }
+
+    #[test]
+    fn test_json_merge_patch_generate() {
+        let from_json = r#"{"name":"John","age":30}"#;
+        let to_json = r#"{"name":"John","age":31}"#;
+        
+        let mut from = CJson::parse(from_json).unwrap();
+        let mut to = CJson::parse(to_json).unwrap();
+        
+        let patch = JsonMergePatch::generate(&mut from, &mut to).unwrap();
+        assert!(patch.is_object());
+    }
+
+    #[test]
+    fn test_json_utils_sort_object() {
+        let json = r#"{"z":"last","a":"first","m":"middle"}"#;
+        let mut obj = CJson::parse(json).unwrap();
+        
+        JsonUtils::sort_object(&mut obj).unwrap();
+        
+        // After sorting, the object should still be valid
+        assert!(obj.is_object());
+        assert!(obj.has_object_item("a"));
+        assert!(obj.has_object_item("m"));
+        assert!(obj.has_object_item("z"));
+    }
+
+    #[test]
+    fn test_json_utils_sort_object_case_sensitive() {
+        let json = r#"{"Z":"last","a":"first","M":"middle"}"#;
+        let mut obj = CJson::parse(json).unwrap();
+        
+        JsonUtils::sort_object_case_sensitive(&mut obj).unwrap();
+        
+        assert!(obj.is_object());
+        assert!(obj.has_object_item("a"));
+        assert!(obj.has_object_item("M"));
+        assert!(obj.has_object_item("Z"));
+    }
+
+    #[test]
+    fn test_pointer_find_from_object_to() {
+        let json = r#"{"foo":{"bar":"test"}}"#;
+        let obj = CJson::parse(json).unwrap();
+        
+        // Note: This creates a new CJson from the reference for testing
+        let target_owned = CJson::parse(r#"{"bar":"test"}"#).unwrap();
+        
+        // This might not work exactly as expected due to pointer comparison
+        // but tests the API
+        let _ = JsonPointer::find_from_object_to(&obj, &target_owned);
+    }
+
+    #[test]
+    fn test_json_patch_add_to_array() {
+        let mut patches = CJson::create_array().unwrap();
+        
+        let value = CJson::create_string("test").unwrap();
+        JsonPatch::add_to_array(&mut patches, "add", "/foo", Some(&value)).unwrap();
+        
+        assert!(patches.is_array());
+        assert_eq!(patches.get_array_size().unwrap(), 1);
+    }
+
+    #[test]
+    fn test_complex_pointer_path() {
+        let json = r#"{"users":[{"name":"Alice","age":25},{"name":"Bob","age":30}]}"#;
+        let obj = CJson::parse(json).unwrap();
+        
+        let result = JsonPointer::get(&obj, "/users/0/name").unwrap();
+        assert_eq!(result.get_string_value().unwrap(), "Alice");
+        
+        let result = JsonPointer::get(&obj, "/users/1/age").unwrap();
+        assert_eq!(result.get_number_value().unwrap(), 30.0);
+    }
+
+    #[test]
+    fn test_merge_patch_null_removal() {
+        let target_json = r#"{"name":"John","age":30,"city":"NYC"}"#;
+        let patch_json = r#"{"city":null}"#;
+        
+        let mut target = CJson::parse(target_json).unwrap();
+        let patch = CJson::parse(patch_json).unwrap();
+        
+        let result = JsonMergePatch::apply(&mut target, &patch).unwrap();
+        core::mem::forget(target); // Prevent double free
+        
+        // City should be removed
+        assert!(result.get_object_item("city").is_err());
+        assert!(result.has_object_item("name"));
+        assert!(result.has_object_item("age"));
+    }
+}

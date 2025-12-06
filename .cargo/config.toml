@@ -1,0 +1,5 @@
+# Cargo configuration for cjson-rs
+
+# Automatically enable std feature when running tests
+[alias]
+test-std = "test --features std"

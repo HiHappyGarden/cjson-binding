@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(any(test, feature = "std")), no_std)]
 
 
 pub(crate) mod cjson_ffi;

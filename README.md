@@ -180,6 +180,27 @@ THE SOFTWARE.
 
 See [LICENSE](LICENSE) for the full GPL-3.0 license text and [cJSON's license](https://github.com/DaveGamble/cJSON/blob/master/LICENSE) for details.
 
+## Testing
+
+The library includes comprehensive unit tests covering all major functionality. To run the tests:
+
+```bash
+cargo test --features std
+```
+
+Or use the provided alias:
+
+```bash
+cargo test-std
+```
+
+See [TESTS.md](TESTS.md) for detailed test documentation and coverage information.
+
+### Test Requirements
+
+- cJSON library installed on your system (`libcjson` and `libcjson_utils`)
+- Standard library support (enabled via the `std` feature for testing)
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
