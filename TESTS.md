@@ -2,7 +2,7 @@
 
 ## Test Coverage
 
-This document describes the test coverage for the `cjson-rs` library.
+This document describes the test coverage for the `cjson-bindings` library.
 
 ### Core cJSON Tests (`src/cjson.rs`)
 
