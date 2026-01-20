@@ -1,4 +1,4 @@
-# Cargo configuration for cjson-bindings
+# Cargo configuration for cjson-binding
 
 # Automatically enable std feature when running tests
 [alias]
