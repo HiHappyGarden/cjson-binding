@@ -1,3 +1,22 @@
+/***************************************************************************
+ *
+ * cJSON FFI BINDING FOR RUST
+ * Copyright (C) 2026 Antonio Salsi <passy.linux@zresa.it>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ ***************************************************************************/
+
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 
 extern crate alloc;
@@ -5,11 +24,17 @@ extern crate alloc;
 #[cfg(feature = "disable_panic")]
 extern crate osal_rs;
 
+#[cfg(feature = "disable_panic")]
+extern crate osal_rs_serde;
+
 pub(crate) mod cjson_ffi;
 mod cjson;
 
 pub(crate) mod cjson_utils_ffi;
 mod cjson_utils;
+
+pub mod ser;
+pub mod de;
 
 // Re-export main types for convenience
 pub use cjson::{CJson, CJsonRef, CJsonResult, CJsonError};
