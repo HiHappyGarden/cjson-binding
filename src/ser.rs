@@ -17,23 +17,80 @@
  *
  ***************************************************************************/
 
+use osal_rs::print;
 use osal_rs::utils::bytes_to_hex_into_slice;
 use osal_rs_serde::Serializer;
-
 
 use crate::CJsonResult;
 use crate::cjson::CJsonError;
 use crate::cjson::CJson;
+
+use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec;
 
 
-pub struct JsonSerializer {
-    obj: CJson,
+pub struct JsonSerializer<'a> {
+    obj: &'a mut CJson,
+    stack: Vec<CJson>,
+    index: usize,
 }
 
 
-impl Serializer for JsonSerializer {
+impl<'a> Serializer for JsonSerializer<'a> {
     type Error =  CJsonError;
+
+    fn serialize_struct_start(&mut self, name: &str, _len: usize) -> core::result::Result<(), Self::Error> {
+
+        print!("serialize_struct_start:{}\r\n", name);
+
+
+        
+
+        if name == "" {
+            self.stack.push(self.obj.clone());
+
+            Ok(())
+        } else {
+            // match self.obj.get_object_item(name) {
+            //     Ok(_) => {
+            //         // Object already exists, do nothing
+            //     },
+            //     Err(_) => {
+            //         let name_string: String = name.into();
+            //         let new_obj = CJson::create_object()?;
+            //         self.obj.add_item_to_object(name, new_obj.clone())?;
+                    
+
+            //         self.containers_stack.push((name_string, new_obj.clone()));
+            //         self.obj = new_obj;
+            //     }
+            // }
+
+             if let Err(_) = self.obj.get_object_item(name) {
+                // self.obj = CJson::create_object()?;
+                // self.obj.add_item_to_object(name, self.obj.clone())?;
+                // self.containers_stack.push(self.obj.clone());
+            }
+            
+
+            Ok(())
+        }
+
+
+    }
+
+    // fn serialize_field<T: Serialize>(&mut self, name: &str, value: &T) -> core::result::Result<(), Self::Error> {
+    //     value.serialize(name, self)
+    // }
+
+    fn serialize_struct_end(&mut self) -> core::result::Result<(), Self::Error> {
+        
+
+        self.obj = &mut parent_obj;
+
+        Ok(())
+    }
 
     fn serialize_bool(&mut self, name: &str, v: bool) -> core::result::Result<(), Self::Error> {
         self.obj.add_bool_to_object(name, v)?;
@@ -126,16 +183,55 @@ impl Serializer for JsonSerializer {
         Ok(())
     }
     
+    fn serialize_string(&mut self, name: &str, v: &String) -> core::result::Result<(), Self::Error> {
+        self.obj.add_string_to_object(name, v)?;
+
+        Ok(())
+    }
+    
+    fn serialize_str(&mut self, name: &str, v: &str) -> core::result::Result<(), Self::Error> {
+        self.obj.add_string_to_object(name, v)?;
+
+        Ok(())
+    }
+    
+    fn serialize_vec<T: osal_rs_serde::Serialize>(&mut self, name: &str, v: &alloc::vec::Vec<T>) -> core::result::Result<(), Self::Error> {
+        for item in v.iter() {
+            item.serialize(name, self)?;
+        }
+        Ok(())
+    }
+    
+    fn serialize_array<T: osal_rs_serde::Serialize>(&mut self, name: &str, v: &[T]) -> core::result::Result<(), Self::Error> {
+        for item in v.iter() {
+            item.serialize(name, self)?;
+        }
+        Ok(())
+    }
+    
     
 
 }
 
 
-impl JsonSerializer {
+impl<'a> JsonSerializer<'a> {
 
-    pub fn new_object() -> CJsonResult<Self> {
-        Ok(JsonSerializer {
-            obj: CJson::create_object()?,
+    pub fn new() -> CJsonResult<Self> {
+
+        let obj = CJson::create_object()?;
+
+        Ok(Self {
+            obj: &mut obj,
+            stack: vec![obj],
+            index: 0,
         })
     }
-}
+
+    pub fn print(self) -> CJsonResult<String> {
+        self.obj.print()
+    }
+
+    pub fn print_unformatted(self) -> CJsonResult<String> {
+        self.obj.print_unformatted()
+    }
+} 
