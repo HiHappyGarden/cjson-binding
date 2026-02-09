@@ -171,7 +171,7 @@ impl Serializer for JsonSerializer {
             Ok(())
         } else {
 
-            let len = self.stack.len();
+            let len = self.stack_name.len();
             if len < 1 {
                 return Err(CJsonError::InvalidOperation);
             }
