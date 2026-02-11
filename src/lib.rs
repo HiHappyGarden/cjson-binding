@@ -88,6 +88,7 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 #[cfg(feature = "osal_rs")]
 const APP_TAG: &str = "cJSON-RS";
 
+#[cfg(feature = "osal_rs")]
 pub fn to_json<T>(value: &T) -> Result<String> 
 where 
     T: Serialize
@@ -118,6 +119,8 @@ where
 {
     use crate::de::JsonDeserializer;
     use osal_rs::log_error;
+
+    //log_info!(APP_TAG, "--->{json}");
 
     let mut deserializer = JsonDeserializer::parse(json).map_err(|e| {
         log_error!(APP_TAG, "Failed to parse JSON: {}", e);
